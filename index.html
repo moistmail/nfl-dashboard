@@ -35,6 +35,9 @@ button,input,select{font:inherit;color:inherit}
 .main{padding:38px 42px 70px;max-width:1320px;width:100%}
 .crumb{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding-bottom:36px;border-bottom:1px solid var(--line)}
 .crumb b{color:var(--text);font-weight:500}
+.crumb{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px 16px}
+.wip{color:var(--warn)}
+#view-week h1{margin-bottom:28px}
 .eyebrow{margin-top:36px;font-size:10px;font-weight:600;letter-spacing:.24em;color:var(--acc);text-transform:uppercase}
 h1{margin:14px 0 10px;font:500 38px/1.15 "Space Grotesk",sans-serif;letter-spacing:-.02em}
 .lede{margin:0 0 32px;color:var(--muted);font-size:15px}
@@ -135,14 +138,14 @@ dl.gloss dd{margin:0;color:var(--muted);font-size:13px}
  .filters label{width:100%}
  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
  .kpi{padding:16px}
- .kv{font-size:26px;margin:10px 0 8px}
+ .kv{font-size:22px;margin:10px 0 8px;white-space:nowrap}
 }
 </style>
 </head>
 <body>
 <div class="shell">
 <aside class="side">
-  <div class="brand"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5l8.5 8.5-8.5 8.5L1.5 10z"/><path d="M10 6l4 4-4 4-4-4z"/></svg><div><b>NFL MODEL</b><small>The analyst's workspace</small></div></div>
+  <div class="brand"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5l8.5 8.5-8.5 8.5L1.5 10z"/><path d="M10 6l4 4-4 4-4-4z"/></svg><div><b>NFL MODEL</b><small>Z-Man's model</small></div></div>
   <div class="season"><span id="season-label">NFL season</span><small id="season-sub">Regular</small></div>
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" id="tab-week" data-view="week" aria-selected="true"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10M10 3v10"/></svg>Weekly projections</button>
@@ -154,13 +157,12 @@ dl.gloss dd{margin:0;color:var(--muted);font-size:13px}
   <div class="side-foot"><div class="lbl"><i class="dot"></i>Data source</div><b>nflverse</b> · <span id="stamp">Loading…</span><small>Loaded live each time the page opens.</small></div>
 </aside>
 <main class="main">
-  <div class="crumb">Research / <b id="crumb-title">Weekly projections</b></div>
+  <div class="crumb"><span>Research / <b id="crumb-title">Weekly projections</b></span><span class="wip">Not financial advice</span></div>
   <div id="err" hidden></div>
 
   <section id="view-week">
     <div class="eyebrow">NFL Analytics · <span class="yr"></span></div>
-    <h1>Every game. Model vs. market.</h1>
-    <p class="lede" id="week-lede">Loading the slate…</p>
+    <h1>Weekly projections</h1>
     <div class="kpis" id="kpis"></div>
     <div class="filters">
       <div class="pills" id="pills" role="group" aria-label="Filter matchups">
@@ -389,7 +391,6 @@ function renderWeek(){
   var doneN=list.filter(function(p){return p.done}).length;
   var graded=MODEL.preds.filter(function(p){return p.done&&p.g.sl!=null&&p.g.tl!=null});
   var sp=tally(graded,"sp"), tt=tally(graded,"tt");
-  $("week-lede").textContent="Model power ratings meet the market. Explore the Week "+w+(w>18?" playoff":"")+" slate.";
   var k=$("kpis"); k.textContent="";
   function kpi(l,v,s){var t=el("div","kpi"); t.appendChild(el("div","kl",l)); t.appendChild(el("div","kv",v)); t.appendChild(el("div","ks",s)); k.appendChild(t)}
   kpi("Prediction week",pad2(w),MODEL.season+(w>18?" playoffs":" regular season"));
