@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NFL Model · Weekly projections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#0d151d;--side:#101e28;--card:#16222d;--line:#25333f;--text:#e4edf3;--muted:#93a2b0;--faint:#6d7d8a;--acc:#7cdeb4;--accbg:#24433f;--accfg:#b5f4d4;--model:#7cdeb4;--market:#7fb2e5;--good:#7dda93;--bad:#e5807f;--warn:#e8b35f}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+button,input,select{font:inherit;color:inherit}
+.shell{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:34px 0 20px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 10px}
+.brand svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.6;flex:none}
+.brand b{display:block;font:700 18px/1 "Space Grotesk",sans-serif;letter-spacing:.06em}
+.brand small{display:block;margin-top:8px;font-size:9px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.season{padding:0 16px;margin:46px 0 14px;font-size:11px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase}
+.season small{display:block;margin-top:12px;font-size:10px;color:var(--faint)}
+.tabs{display:flex;flex-direction:column;gap:6px;padding:0 8px}
+.tabs button{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;background:none;border:0;border-left:3px solid transparent;border-radius:5px;color:var(--muted);cursor:pointer;text-align:left;font-size:13px}
+.tabs button:hover{color:var(--text)}
+.tabs button[aria-selected=true]{background:var(--accbg);color:var(--accfg);border-left-color:var(--acc)}
+.tabs svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side-foot{margin-top:auto;padding:0 16px;font-size:11px;color:var(--muted)}
+.side-foot .lbl{display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--acc);display:inline-block}
+.side-foot b{color:var(--text);font-weight:500}
+.side-foot small{display:block;margin-top:6px;color:var(--faint);font-size:10px}
+.main{padding:38px 42px 70px;max-width:1320px;width:100%}
+.crumb{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding-bottom:36px;border-bottom:1px solid var(--line)}
+.crumb b{color:var(--text);font-weight:500}
+.eyebrow{margin-top:36px;font-size:10px;font-weight:600;letter-spacing:.24em;color:var(--acc);text-transform:uppercase}
+h1{margin:14px 0 10px;font:500 38px/1.15 "Space Grotesk",sans-serif;letter-spacing:-.02em}
+.lede{margin:0 0 32px;color:var(--muted);font-size:15px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:20px}
+.kl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.kv{font:500 34px/1.1 "Space Grotesk",sans-serif;margin:14px 0 12px}
+.ks{font-size:11px;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:34px 0 18px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pills button{background:none;border:0;border-radius:5px;padding:9px 12px;font-size:11px;color:var(--muted);cursor:pointer}
+.pills button[aria-pressed=true]{background:var(--accbg);color:var(--accfg);font-weight:600}
+.filters .sp{flex:1}
+.filters label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+select,input[type=search]{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font-size:12px;color:var(--text)}
+input[type=search]{width:190px}
+select:focus,input:focus{outline:1px solid var(--acc)}
+.howto{margin:0 0 18px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px;font-size:13px}
+.howto summary{cursor:pointer;font-weight:500}
+.howto ul{margin:10px 0 2px;padding-left:18px;color:var(--muted)}
+.howto li{margin:6px 0}
+.howto b{color:var(--text);font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr));gap:16px}
+.game{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px 22px}
+.game.hl{border-color:#2f8a73}
+.g-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tag{padding:3px 8px;border-radius:3px;font-size:9px;font-weight:600;letter-spacing:.12em;white-space:nowrap}
+.tag.final{background:rgba(125,218,147,.13);color:#9ad693}
+.tag.mm{background:#1f3d38;color:var(--acc)}
+.tag.mo{background:#26343f;color:var(--muted)}
+.g-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px;margin:22px 0}
+.tm b{display:block;font:600 24px/1 "Space Grotesk",sans-serif}
+.tm small{display:block;margin-top:8px;font-size:11px;color:var(--muted)}
+.tm.r{text-align:right}
+.g-score{text-align:center}
+.g-score b{display:block;font:500 22px/1 "Space Grotesk",sans-serif;white-space:nowrap}
+.g-score small{display:block;margin-top:8px;font-size:9px;letter-spacing:.16em;color:var(--faint)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;border-top:1px solid var(--line);padding-top:14px}
+.sl{display:block;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.sv{display:block;font:600 15px/1.2 "Space Grotesk",sans-serif;margin-top:9px}
+.ss{display:block;margin-top:5px;font-size:11px;color:var(--muted)}
+.bar{height:3px;background:#334551;border-radius:2px;margin-top:16px;overflow:hidden}
+.bar i{display:block;height:100%;background:#73cda5}
+.fin{margin-top:14px;font-size:12px;color:var(--muted)}
+.fin b{color:var(--text);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--muted)}
+.chip.flag{background:rgba(232,179,95,.14);color:var(--warn)}
+.chip.good{background:rgba(125,218,147,.13);color:var(--good)}
+.chip.bad{background:rgba(229,128,127,.14);color:var(--bad)}
+.tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:500;text-align:right;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+th.l,td.l{text-align:left}
+tr.sum td{font-weight:600;background:rgba(255,255,255,.03)}
+.pwr{display:inline-block;position:relative;width:110px;height:6px;background:#26343f;border-radius:3px;margin-right:10px;vertical-align:middle}
+.pwr i{position:absolute;top:0;bottom:0;border-radius:3px}
+.pos{color:var(--good)}
+.neg{color:var(--bad)}
+.res{display:inline-block;min-width:44px;text-align:center;font-size:11px;padding:2px 7px;border-radius:4px}
+.res.W{background:rgba(125,218,147,.13);color:var(--good)}
+.res.L{background:rgba(229,128,127,.14);color:var(--bad)}
+.res.P{background:rgba(255,255,255,.07);color:var(--muted)}
+.reccards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:0 0 8px}
+.rec{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px}
+.rk{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.rv{font:500 34px/1.1 "Space Grotesk",sans-serif;margin:14px 0 4px}
+.rs{font-size:12px;color:var(--muted);margin-bottom:14px}
+.rec dl{margin:0;border-top:1px solid var(--line)}
+.rec dl div{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}
+.rec dl div:last-child{border-bottom:0}
+.rec dt{color:var(--muted)}
+.rec dd{margin:0;font-weight:500}
+h2.sec{font:500 20px "Space Grotesk",sans-serif;margin:34px 0 14px}
+.note{color:var(--muted);font-size:12px;margin:12px 0 0}
+.gl-h{font:600 11px "Space Grotesk",sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--acc);margin:30px 0 12px}
+dl.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px;margin:0}
+dl.gloss>div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+dl.gloss dt{font-weight:600;margin-bottom:4px}
+dl.gloss dd{margin:0;color:var(--muted);font-size:13px}
+#err{background:rgba(229,128,127,.12);border:1px solid var(--bad);color:var(--bad);padding:12px 16px;border-radius:6px;margin:20px 0 0}
+@media(max-width:860px){
+ .shell{grid-template-columns:minmax(0,1fr)}
+ .side{position:static;height:auto;padding:16px 0 8px;border-right:0;border-bottom:1px solid var(--line)}
+ .season,.side-foot{display:none}
+ .tabs{flex-direction:row;overflow-x:auto;gap:4px;margin-top:14px;padding:0 10px 6px}
+ .tabs button{width:auto;white-space:nowrap;padding:10px 12px;border-left:0;border-bottom:2px solid transparent;border-radius:4px}
+ .tabs button[aria-selected=true]{border-bottom-color:var(--acc)}
+ .main{padding:22px 16px 56px}
+ .crumb{padding-bottom:20px}
+ h1{font-size:28px}
+ .eyebrow{margin-top:24px}
+ .tm b{font-size:20px}
+ input[type=search]{width:100%}
+ .filters .sp{display:none}
+ .filters label{width:100%}
+ .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .kpi{padding:16px}
+ .kv{font-size:26px;margin:10px 0 8px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side">
+  <div class="brand"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5l8.5 8.5-8.5 8.5L1.5 10z"/><path d="M10 6l4 4-4 4-4-4z"/></svg><div><b>NFL MODEL</b><small>The analyst's workspace</small></div></div>
+  <div class="season"><span id="season-label">NFL season</span><small id="season-sub">Regular</small></div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" id="tab-week" data-view="week" aria-selected="true"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M6 3v10M10 3v10"/></svg>Weekly projections</button>
+    <button role="tab" id="tab-ratings" data-view="ratings" aria-selected="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 13V9M7 13V5M11 13V7M15 13V3"/></svg>Power ratings</button>
+    <button role="tab" id="tab-results" data-view="results" aria-selected="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 12l4-4 3 3 5-6"/></svg>Model performance</button>
+    <button role="tab" id="tab-schedule" data-view="schedule" aria-selected="false"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>Schedule &amp; results</button>
+    <button role="tab" id="tab-glossary" data-view="glossary" aria-selected="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h8v11H4z"/><path d="M6.5 5.5h3"/></svg>Glossary</button>
+  </nav>
+  <div class="side-foot"><div class="lbl"><i class="dot"></i>Data source</div><b>nflverse</b> · <span id="stamp">Loading…</span><small>Loaded live each time the page opens.</small></div>
+</aside>
+<main class="main">
+  <div class="crumb">Research / <b id="crumb-title">Weekly projections</b></div>
+  <div id="err" hidden></div>
+
+  <section id="view-week">
+    <div class="eyebrow">NFL Analytics · <span class="yr"></span></div>
+    <h1>Every game. Model vs. market.</h1>
+    <p class="lede" id="week-lede">Loading the slate…</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="filters">
+      <div class="pills" id="pills" role="group" aria-label="Filter matchups">
+        <button type="button" data-f="all" aria-pressed="true">All matchups</button>
+        <button type="button" data-f="up" aria-pressed="false">Upcoming</button>
+        <button type="button" data-f="gap" aria-pressed="false">Largest gaps</button>
+      </div>
+      <span class="sp"></span>
+      <label>Week <select id="week-select"></select></label>
+      <input type="search" id="search" placeholder="Search teams…" aria-label="Search teams">
+    </div>
+    <details class="howto">
+      <summary>How to read this page</summary>
+      <ul>
+        <li><b>Model</b> numbers come only from our power ratings. <b>Market</b> numbers are what the sportsbook line implies. They are shown side by side so you can see where they differ.</li>
+        <li>The large score is the model's projected score. The bar under the numbers is the away team's model win chance.</li>
+        <li><b>Spread</b> such as “CHI -2.5” means Chicago is expected to win by about 2.5 points. <b>Total</b> is both teams’ points combined. <b>Win probability</b> is the favorite’s chance of winning outright.</li>
+        <li><b>Gap</b> tags show how far the model is from the market. A gap of 3 or more points is highlighted. Backtests show the market is usually right, so treat those as research leads, not bets.</li>
+        <li>Spread picks and over/under picks are graded separately on the Model performance page.</li>
+      </ul>
+    </details>
+    <div class="grid" id="games"></div>
+  </section>
+
+  <section id="view-ratings" hidden>
+    <div class="eyebrow">NFL Analytics · <span class="yr"></span></div>
+    <h1>Power ratings</h1>
+    <p class="lede" id="ratings-note"></p>
+    <div class="tablewrap"><table id="ratings-table"></table></div>
+    <p class="note">Power = points better than an average team on a neutral field. Off = points scored above average. Def = points allowed versus average, so lower is better.</p>
+  </section>
+
+  <section id="view-results" hidden>
+    <div class="eyebrow">NFL Analytics · <span class="yr"></span></div>
+    <h1>Model performance</h1>
+    <p class="lede">Every completed game, predicted using only the games played before its week. Spread picks and over/under picks are tracked separately.</p>
+    <div class="reccards" id="reccards"></div>
+    <h2 class="sec">Record by week</h2>
+    <div class="tablewrap"><table id="results-table"></table></div>
+    <p class="note">Records are wins–losses, with a third number for pushes. Spread: the model's side against the closing spread. Totals: the model's over or under against the closing total. “3+” counts only games where the model differed from the market by 3 or more points. 52.4% is break-even at standard odds.</p>
+  </section>
+
+  <section id="view-schedule" hidden>
+    <div class="eyebrow">NFL Analytics · <span class="yr"></span></div>
+    <h1>Schedule &amp; results</h1>
+    <p class="lede">Every game this season with the market line, the model's call, and how each call finished.</p>
+    <div class="tablewrap"><table id="schedule-table"></table></div>
+    <p class="note">Spread and total picks show the model's side and, in brackets, how many points it differs from the market. Won, lost and push are measured against the closing line.</p>
+  </section>
+
+<section id="view-glossary" hidden>
+    <div class="eyebrow">NFL Analytics · <span class="yr"></span></div>
+    <h1>Glossary</h1>
+    <p class="lede">Plain-English definitions for the terms used on this page.</p>
+    <h3 class="gl-h">Betting basics</h3>
+    <dl class="gloss">
+      <div><dt>Spread</dt><dd>The number of points the favorite is expected to win by. “CHI -2.5” means Chicago is favored by 2.5; the other side is “+2.5”.</dd></div>
+      <div><dt>Favorite / underdog</dt><dd>The team expected to win, and the team expected to lose.</dd></div>
+      <div><dt>Pick’em</dt><dd>A game with no favorite: the spread is zero.</dd></div>
+      <div><dt>Cover</dt><dd>Beating the spread. A 3-point favorite covers by winning by 4 or more; the underdog covers by losing by 2 or fewer, or winning.</dd></div>
+      <div><dt>Push</dt><dd>A bet that lands exactly on the line, so the stake is returned.</dd></div>
+      <div><dt>Total (over/under)</dt><dd>The combined points both teams are expected to score. You bet whether the real total goes over or under it.</dd></div>
+      <div><dt>Moneyline</dt><dd>A bet on who wins outright, with no spread. -150 means risk $150 to win $100; +130 means risk $100 to win $130.</dd></div>
+      <div><dt>Vig (juice)</dt><dd>The sportsbook’s cut, built into the odds. At the standard -110 you risk $110 to win $100.</dd></div>
+      <div><dt>Break-even (52.4%)</dt><dd>How often you must win at -110 odds just to break even. Anything below it loses money over time.</dd></div>
+      <div><dt>Closing line</dt><dd>The final line just before kickoff. It reflects the most information, so it is the hardest number to beat.</dd></div>
+      <div><dt>Closing-line value (CLV)</dt><dd>Getting a better number than the closing line, such as +3.5 on a team that closes +2.5. Beating the close consistently is the best early sign of real skill.</dd></div>
+    </dl>
+    <h3 class="gl-h">What the model produces</h3>
+    <dl class="gloss">
+      <div><dt>Power rating</dt><dd>How many points better or worse a team is than an average team on a neutral field. +4.0 means four points better than average.</dd></div>
+      <div><dt>Off rating</dt><dd>Points a team scores above or below the league average per game. Higher is better.</dd></div>
+      <div><dt>Def rating</dt><dd>Points a team allows versus the league average. Lower is better: -3.0 means it allows three fewer than average.</dd></div>
+      <div><dt>Projected score</dt><dd>The model's projected total split between the two teams by its projected margin.</dd></div>
+      <div><dt>Win chance</dt><dd>The probability the favorite wins outright.</dd></div>
+      <div><dt>Market</dt><dd>The sportsbooks’ line and total for the game.</dd></div>
+      <div><dt>Gap</dt><dd>How far the model is from the market, in points. “Model likes CHI by 4.8” means the ratings rate Chicago 4.8 points better than the market does.</dd></div>
+      <div><dt>Highlighted gap</dt><dd>A gap of 3 or more points, shown in orange. It usually means the market knows something the ratings do not, such as an injury, so check before acting.</dd></div>
+    </dl>
+    <h3 class="gl-h">Model inputs</h3>
+    <dl class="gloss">
+      <div><dt>Home field advantage</dt><dd>Points added for playing at home. Not applied at neutral sites.</dd></div>
+      <div><dt>Last-season carryover</dt><dd>How much of each team’s final rating from last season it starts this season with. 70% means it keeps most of it.</dd></div>
+      <div><dt>Shrink toward prior</dt><dd>How many games of this season it takes for current results to count as much as the starting rating. A higher number means ratings move more slowly.</dd></div>
+      <div><dt>Strength of schedule</dt><dd>Adjusts ratings for the quality of opponents faced, so beating strong teams counts for more.</dd></div>
+      
+      <div><dt>Margin std dev</dt><dd>How much real results scatter around a projection, in points. It converts an expected margin into a win chance.</dd></div>
+    </dl>
+    <h3 class="gl-h">Results and testing</h3>
+    <dl class="gloss">
+      <div><dt>Spread record (ATS)</dt><dd>How often the model's side beat the closing spread. If the model rates the home team higher than the market does, its pick is the home team to cover; otherwise the away team. Pushes are shown as a third number.</dd></div>
+      <div><dt>Totals record (over/under)</dt><dd>How often the model's over or under call was right against the closing total. The model picks the over when its projected total is above the market total, and the under when it is below.</dd></div>
+      <div><dt>3+ pt gaps</dt><dd>The same records, counting only games where the model differed from the market line by 3 or more points.</dd></div>
+      <div><dt>Winner pick</dt><dd>Whether the team with the higher model win probability won outright. The market's favorite is graded the same way for comparison.</dd></div>
+      <div><dt>Avg miss</dt><dd>The average gap, in points, between a projection and what happened. Lower is better. Also called mean absolute error.</dd></div>
+      <div><dt>Point-in-time</dt><dd>Each game is predicted using only games played before its week, so past results are a fair test.</dd></div>
+      <div><dt>Backtest</dt><dd>Running the model over past seasons to see how its projections would have done.</dd></div>
+      <div><dt>Brier score</dt><dd>A score for win probabilities: the average squared gap between the stated chance and the outcome. Lower is better; 0.25 is a coin flip.</dd></div>
+    </dl>
+  </section>
+</main>
+</div>
+<script>
+
+(function(){
+"use strict";
+var NICK={ARI:"Cardinals",ATL:"Falcons",BAL:"Ravens",BUF:"Bills",CAR:"Panthers",CHI:"Bears",CIN:"Bengals",CLE:"Browns",DAL:"Cowboys",DEN:"Broncos",DET:"Lions",GB:"Packers",HOU:"Texans",IND:"Colts",JAX:"Jaguars",KC:"Chiefs",LA:"Rams",LAC:"Chargers",LV:"Raiders",MIA:"Dolphins",MIN:"Vikings",NE:"Patriots",NO:"Saints",NYG:"Giants",NYJ:"Jets",PHI:"Eagles",PIT:"Steelers",SEA:"Seahawks",SF:"49ers",TB:"Buccaneers",TEN:"Titans",WAS:"Commanders"};
+var DEF={hfa:1.5,k:12,carry:60,sos:1,wsp:0,wtot:0,wwin:0,sd:10};
+var S=Object.assign({},DEF), DATA=null, MODEL=null, selWeek=null;
+
+function $(id){return document.getElementById(id)}
+function el(tag,cls,txt){var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e}
+function f1(x){return (Math.round(x*10)/10).toFixed(1)}
+function sgn(x){return (x>0?"+":"")+f1(x)}
+function cdf(z){ // standard normal CDF
+  var t=1/(1+0.2316419*Math.abs(z)), d=0.3989423*Math.exp(-z*z/2);
+  var p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
+  return z>0?1-p:p;
+}
+function implied(ml){return ml<0? -ml/(-ml+100) : 100/(ml+100)}
+
+// ---- rating engine (same method as the workbook's qRatingsWeekly)
+function rate(games,teams,mP,mO,mD,lgDefault){
+  var n=teams.length, idx={}; teams.forEach(function(t,i){idx[t]=i});
+  var g=games.filter(function(x){return x.hs!=null});
+  var lg=g.length? g.reduce(function(a,x){return a+x.hs+x.as},0)/(2*g.length) : lgDefault;
+  var GP=new Array(n).fill(0),A=new Array(n).fill(0),PF=new Array(n).fill(0),PA=new Array(n).fill(0),W=new Array(n).fill(0),L=new Array(n).fill(0),T=new Array(n).fill(0),opp=[];
+  for(var i=0;i<n;i++) opp.push([]);
+  g.forEach(function(x){
+    var h=idx[x.home],a=idx[x.away]; if(h==null||a==null) return;
+    var m=x.hs-x.as, hf=x.loc==="Home"?1:0;
+    GP[h]++;GP[a]++; A[h]+=m-S.hfa*hf; A[a]+=-m+S.hfa*hf;
+    PF[h]+=x.hs-lg; PA[h]+=x.as-lg; PF[a]+=x.as-lg; PA[a]+=x.hs-lg;
+    opp[h].push(a); opp[a].push(h);
+    if(m>0){W[h]++;L[a]++} else if(m<0){W[a]++;L[h]++} else {T[h]++;T[a]++}
+  });
+  var R=mP.slice(),O=mO.slice(),D=mD.slice(),k=S.k,s=S.sos;
+  for(var it=0;it<25;it++){
+    var R2=[],O2=[],D2=[];
+    for(i=0;i<n;i++){
+      var den=GP[i]+k, sr=0,sd=0,so=0;
+      opp[i].forEach(function(j){sr+=R[j];sd+=D[j];so+=O[j]});
+      R2.push(den? (A[i]+s*sr+k*mP[i])/den : 0);
+      O2.push(den? (PF[i]-s*sd+k*mO[i])/den : 0);
+      D2.push(den? (PA[i]-s*so+k*mD[i])/den : 0);
+    }
+    R=R2;O=O2;D=D2;
+  }
+  return {R:R,O:O,D:D,lg:lg,GP:GP,W:W,L:L,T:T,idx:idx};
+}
+function build(){
+  var season=DATA.season, all=DATA.games;
+  var cur=all.filter(function(x){return x.season===season});
+  var prev=all.filter(function(x){return x.season===season-1});
+  var teams=Array.from(new Set(cur.map(function(x){return x.home}).concat(cur.map(function(x){return x.away})))).sort();
+  var z=teams.map(function(){return 0});
+  var pr=rate(prev,teams,z,z,z,22), c=S.carry/100;
+  var mP=pr.R.map(function(v){return c*v}),mO=pr.O.map(function(v){return c*v}),mD=pr.D.map(function(v){return c*v});
+  var weeks=Array.from(new Set(cur.map(function(x){return x.week}))).sort(function(a,b){return a-b});
+  var byWeek={};
+  weeks.forEach(function(w){ byWeek[w]=rate(cur.filter(function(x){return x.week<w}),teams,mP,mO,mD,pr.lg) });
+  var open=cur.filter(function(x){return x.hs==null}).map(function(x){return x.week});
+  var next=open.length? Math.min.apply(null,open) : weeks[weeks.length-1];
+  var latest=rate(cur,teams,mP,mO,mD,pr.lg);
+  var preds=cur.map(function(x){
+    var r=byWeek[x.week],h=r.idx[x.home],a=r.idx[x.away],hf=x.loc==="Home"?1:0;
+    var mm=r.R[h]-r.R[a]+S.hfa*hf, mt=2*r.lg+r.O[h]+r.O[a]+r.D[h]+r.D[a];
+    var hasS=x.sl!=null, hasT=x.tl!=null;
+    var ws=S.wsp/100, wt=S.wtot/100, ww=S.wwin/100;
+    var bm=hasS? ws*mm+(1-ws)*x.sl : mm, bt=hasT? wt*mt+(1-wt)*x.tl : mt;
+    var pm=cdf(mm/S.sd), pk=null;
+    if(x.hml!=null&&x.aml!=null){var ph=implied(x.hml),pa=implied(x.aml); pk=ph/(ph+pa)} else if(hasS) pk=cdf(x.sl/S.sd);
+    var bp=pk!=null? ww*pm+(1-ww)*pk : pm;
+    return {g:x,mm:mm,mt:mt,bm:bm,bt:bt,bp:bp,pm:pm,pk:pk,side:hasS?mm-x.sl:null,tot:hasT?mt-x.tl:null,
+            ph:(bt+bm)/2,pa:(bt-bm)/2,done:x.hs!=null};
+  });
+  MODEL={teams:teams,weeks:weeks,byWeek:byWeek,next:next,latest:latest,preds:preds,season:season};
+}
+
+
+var FULL={ARI:"Arizona Cardinals",ATL:"Atlanta Falcons",BAL:"Baltimore Ravens",BUF:"Buffalo Bills",CAR:"Carolina Panthers",CHI:"Chicago Bears",CIN:"Cincinnati Bengals",CLE:"Cleveland Browns",DAL:"Dallas Cowboys",DEN:"Denver Broncos",DET:"Detroit Lions",GB:"Green Bay Packers",HOU:"Houston Texans",IND:"Indianapolis Colts",JAX:"Jacksonville Jaguars",KC:"Kansas City Chiefs",LA:"Los Angeles Rams",LAC:"Los Angeles Chargers",LV:"Las Vegas Raiders",MIA:"Miami Dolphins",MIN:"Minnesota Vikings",NE:"New England Patriots",NO:"New Orleans Saints",NYG:"New York Giants",NYJ:"New York Jets",PHI:"Philadelphia Eagles",PIT:"Pittsburgh Steelers",SEA:"Seattle Seahawks",SF:"San Francisco 49ers",TB:"Tampa Bay Buccaneers",TEN:"Tennessee Titans",WAS:"Washington Commanders"};
+var VIEWS=["week","ratings","results","schedule","glossary"];
+var TITLES={week:"Weekly projections",ratings:"Power ratings",results:"Model performance",schedule:"Schedule & results",glossary:"Glossary"};
+var flt="all", q="";
+
+function pad2(n){return ("0"+n).slice(-2)}
+function pctS(p){return Math.round((p>=.5?p:1-p)*100)+"%"}
+function favText(margin,home,away){ var m=Math.round(margin*10)/10; if(m===0) return "Pick'em"; return (m>0?home:away)+" -"+f1(Math.abs(m)) }
+function mdate(x){ var d=x.day.split("-"); return (+d[1])+" / "+(+d[2]) }
+function ktime(x){ if(!x.time) return ""; var p=x.time.split(":"),hh=+p[0],ap=hh>=12?"PM":"AM"; hh=hh%12||12; return hh+":"+p[1]+" "+ap+" ET" }
+
+// ---- the model's calls, graded separately for spread, totals and straight-up winners
+function calls(p){
+  var x=p.g, o={};
+  if(p.side!=null && p.side!==0){
+    o.sp={pick:p.side>0?x.home:x.away, gap:Math.abs(p.side)};
+    if(p.done){ var m=x.hs-x.as; o.sp.res = m===x.sl ? "P" : (((m>x.sl)===(p.side>0))?"W":"L"); }
+  }
+  if(p.tot!=null && p.tot!==0){
+    o.tt={pick:p.tot>0?"Over":"Under", gap:Math.abs(p.tot)};
+    if(p.done){ var t=x.hs+x.as; o.tt.res = t===x.tl ? "P" : (((t>x.tl)===(p.tot>0))?"W":"L"); }
+  }
+  if(p.done && x.hs!==x.as){
+    o.su={pick:p.pm>=.5?x.home:x.away, res:((p.pm>=.5)===(x.hs>x.as))?"W":"L"};
+    if(p.pk!=null) o.mk={pick:p.pk>=.5?x.home:x.away, res:((p.pk>=.5)===(x.hs>x.as))?"W":"L"};
+  }
+  return o;
+}
+function tally(list,key,minGap){
+  var t={w:0,l:0,p:0};
+  list.forEach(function(p){
+    var c=calls(p)[key]; if(!c||!c.res) return;
+    if(minGap&&(c.gap==null||c.gap<minGap)) return;
+    if(c.res==="W") t.w++; else if(c.res==="L") t.l++; else t.p++;
+  });
+  return t;
+}
+function fmtRec(t){ return t.w+"–"+t.l+(t.p?"–"+t.p:"") }
+function pctRec(t){ var n=t.w+t.l; return n? (Math.round(t.w/n*1000)/10).toFixed(1)+"%" : "–" }
+function resPill(c){ if(!c||!c.res) return el("span",null,"–"); return el("span","res "+c.res,c.res==="W"?"Won":c.res==="L"?"Lost":"Push") }
+function maxGap(p){ return Math.max(p.side!=null?Math.abs(p.side):-1, p.tot!=null?Math.abs(p.tot):-1) }
+
+// ---- Weekly projections
+function renderWeek(){
+  var w=selWeek, list=MODEL.preds.filter(function(p){return p.g.week===w});
+  var doneN=list.filter(function(p){return p.done}).length;
+  var graded=MODEL.preds.filter(function(p){return p.done&&p.g.sl!=null&&p.g.tl!=null});
+  var sp=tally(graded,"sp"), tt=tally(graded,"tt");
+  $("week-lede").textContent="Model power ratings meet the market. Explore the Week "+w+(w>18?" playoff":"")+" slate.";
+  var k=$("kpis"); k.textContent="";
+  function kpi(l,v,s){var t=el("div","kpi"); t.appendChild(el("div","kl",l)); t.appendChild(el("div","kv",v)); t.appendChild(el("div","ks",s)); k.appendChild(t)}
+  kpi("Prediction week",pad2(w),MODEL.season+(w>18?" playoffs":" regular season"));
+  kpi("Weekly matchups",String(list.length),(list.length-doneN)+" awaiting results");
+  kpi("Completed games",String(MODEL.preds.filter(function(p){return p.done}).length),"Season results loaded");
+  kpi("Season record vs market",graded.length?"ATS "+fmtRec(sp):"–",graded.length?"O/U "+fmtRec(tt)+" · all games":"No completed games yet");
+
+  var rows=list.slice();
+  if(flt==="up") rows=rows.filter(function(p){return !p.done});
+  if(q) rows=rows.filter(function(p){
+    var s=[p.g.home,p.g.away,NICK[p.g.home],NICK[p.g.away],FULL[p.g.home],FULL[p.g.away]].join(" ").toLowerCase();
+    return s.indexOf(q)>=0;
+  });
+  if(flt==="gap") rows.sort(function(a,b){return maxGap(b)-maxGap(a)});
+
+  var box=$("games"); box.textContent="";
+  if(!rows.length){ box.appendChild(el("p","note","No games match this filter.")); return }
+  function stat(label,val,sub){ var d=el("div"); d.appendChild(el("span","sl",label)); d.appendChild(el("b","sv",val)); if(sub) d.appendChild(el("span","ss",sub)); return d }
+  rows.forEach(function(p){
+    var x=p.g, c=calls(p), hasM=x.sl!=null&&x.tl!=null;
+    var flagged=!p.done&&((p.side!=null&&Math.abs(p.side)>=3)||(p.tot!=null&&Math.abs(p.tot)>=3));
+    var card=el("article","game"+(flagged?" hl":""));
+    var top=el("div","g-top");
+    var meta=mdate(x)+" · Week "+x.week+(x.loc==="Neutral"?" · Neutral site":"")+(!p.done&&ktime(x)?" · "+ktime(x):"");
+    top.appendChild(el("span",null,meta));
+    top.appendChild(el("span","tag "+(p.done?"final":hasM?"mm":"mo"),p.done?"FINAL":hasM?"MODEL + MARKET":"MODEL ONLY"));
+    card.appendChild(top);
+    var mS=[(p.mt-p.mm)/2,(p.mt+p.mm)/2];
+    var tm=el("div","g-teams");
+    var L=el("div","tm"); L.appendChild(el("b",null,x.away)); L.appendChild(el("small",null,FULL[x.away]||x.away));
+    var C=el("div","g-score"); C.appendChild(el("b",null,Math.round(mS[0])+" : "+Math.round(mS[1]))); C.appendChild(el("small",null,"PROJECTED"));
+    var R=el("div","tm r"); R.appendChild(el("b",null,x.home)); R.appendChild(el("small",null,FULL[x.home]||x.home));
+    tm.appendChild(L); tm.appendChild(C); tm.appendChild(R); card.appendChild(tm);
+    var st=el("div","stats");
+    st.appendChild(stat("Projected spread",favText(p.mm,x.home,x.away),hasM?"Market "+favText(x.sl,x.home,x.away):"No market line yet"));
+    st.appendChild(stat("Win probability",(p.pm>=.5?x.home:x.away)+" "+pctS(p.pm),p.pk!=null?"Market "+(p.pk>=.5?x.home:x.away)+" "+pctS(p.pk):""));
+    st.appendChild(stat("Projected total",f1(p.mt)+" pts",x.tl!=null?"Market "+f1(x.tl):""));
+    card.appendChild(st);
+    var bar=el("div","bar"), fill=el("i"); fill.style.width=Math.round((1-p.pm)*100)+"%"; bar.appendChild(fill); card.appendChild(bar);
+    if(p.done){
+      var fin=el("div","fin"); fin.appendChild(document.createTextNode("Final · ")); fin.appendChild(el("b",null,x.away+" "+x.as+" – "+x.home+" "+x.hs)); card.appendChild(fin);
+    }
+    var chips=el("div","chips");
+    if(!hasM) chips.appendChild(el("span","chip","No market line yet"));
+    if(p.side!=null){ var a=Math.abs(p.side); chips.appendChild(el("span","chip"+(a>=3?" flag":""), a<1?"Spread: model agrees":"Spread gap: model likes "+(p.side>0?x.home:x.away)+" by "+f1(a))) }
+    if(p.tot!=null){ var b=Math.abs(p.tot); chips.appendChild(el("span","chip"+(b>=3?" flag":""), b<1?"Total: model agrees":"Total gap: model "+(p.tot>0?"over":"under")+" by "+f1(b))) }
+    if(p.done){
+      if(c.sp&&c.sp.res) chips.appendChild(el("span","chip "+(c.sp.res==="W"?"good":c.sp.res==="L"?"bad":""),"Spread pick: "+c.sp.pick+" · "+(c.sp.res==="W"?"won":c.sp.res==="L"?"lost":"push")));
+      if(c.tt&&c.tt.res) chips.appendChild(el("span","chip "+(c.tt.res==="W"?"good":c.tt.res==="L"?"bad":""),"Total pick: "+c.tt.pick+" · "+(c.tt.res==="W"?"won":c.tt.res==="L"?"lost":"push")));
+      if(c.su) chips.appendChild(el("span","chip "+(c.su.res==="W"?"good":"bad"),"Winner pick: "+c.su.pick+" · "+(c.su.res==="W"?"correct":"missed")));
+    }
+    if(chips.childNodes.length) card.appendChild(chips);
+    box.appendChild(card);
+  });
+}
+
+// ---- Ratings
+function renderRatings(){
+  var r=MODEL.byWeek[MODEL.next]||MODEL.latest, rec=MODEL.latest;
+  $("ratings-note").textContent="Entering Week "+MODEL.next+", "+MODEL.season+" season";
+  var rows=MODEL.teams.map(function(t,i){return {t:t,p:r.R[i],o:r.O[i],d:r.D[i],w:rec.W[i],l:rec.L[i],ti:rec.T[i]}}).sort(function(a,b){return b.p-a.p});
+  var max=Math.max.apply(null,rows.map(function(x){return Math.abs(x.p)}))||1;
+  var tb=$("ratings-table"); tb.textContent="";
+  var hr=el("tr"); ["#","Team","Record","Power","Off","Def"].forEach(function(h,i){var th=el("th",i===1?"l":null,h); hr.appendChild(th)}); tb.appendChild(hr);
+  rows.forEach(function(x,i){
+    var tr=el("tr");
+    tr.appendChild(el("td",null,String(i+1)));
+    var td=el("td","l"); var b=el("b",null,x.t); td.appendChild(b); td.appendChild(document.createTextNode(" "+(NICK[x.t]||""))); tr.appendChild(td);
+    tr.appendChild(el("td",null,x.w+"-"+x.l+(x.ti?"-"+x.ti:"")));
+    var pc=el("td"); var bar=el("span","pwr"), fill=el("i"); var pct=Math.abs(x.p)/max*50;
+    fill.style.width=pct+"%"; fill.style.left=(x.p>=0?50:50-pct)+"%"; fill.style.background=x.p>=0?"var(--good)":"var(--bad)";
+    bar.appendChild(fill); pc.appendChild(bar); var v=el("b",x.p>=0?"pos":"neg",sgn(x.p)); pc.appendChild(v); tr.appendChild(pc);
+    tr.appendChild(el("td",null,sgn(x.o))); tr.appendChild(el("td",null,sgn(x.d)));
+    tb.appendChild(tr);
+  });
+}
+
+
+// ---- Model performance
+function renderResults(){
+  var rc=$("reccards"), tb=$("results-table"); rc.textContent=""; tb.textContent="";
+  var d=MODEL.preds.filter(function(p){return p.done&&p.g.sl!=null&&p.g.tl!=null});
+  if(!d.length){ rc.appendChild(el("p","note","No completed games with market lines yet this season.")); return }
+  function mae(f){return d.reduce(function(a,p){return a+Math.abs(f(p))},0)/d.length}
+  var sMod=mae(function(p){return p.g.hs-p.g.as-p.mm}), sMkt=mae(function(p){return p.g.hs-p.g.as-p.g.sl});
+  var tMod=mae(function(p){return p.g.hs+p.g.as-p.mt}), tMkt=mae(function(p){return p.g.hs+p.g.as-p.g.tl});
+  function card(title,t,sub,rows){
+    var c=el("div","rec"); c.appendChild(el("div","rk",title)); c.appendChild(el("div","rv",fmtRec(t))); c.appendChild(el("div","rs",pctRec(t)+" · "+sub));
+    var dl=el("dl"); rows.forEach(function(r){var row=el("div"); row.appendChild(el("dt",null,r[0])); row.appendChild(el("dd",null,r[1])); dl.appendChild(row)});
+    c.appendChild(dl); rc.appendChild(c);
+  }
+  var s1=tally(d,"sp"), s3=tally(d,"sp",3), o1=tally(d,"tt"), o3=tally(d,"tt",3), m1=tally(d,"su"), k1=tally(d,"mk");
+  card("Against the spread",s1,"model side vs. closing spread, all games",[["3+ pt gaps",fmtRec(s3)+" · "+pctRec(s3)],["Break-even at standard odds","52.4%"],["Avg miss, model / market",f1(sMod)+" / "+f1(sMkt)+" pts"]]);
+  card("Over / under",o1,"model total vs. closing total, all games",[["3+ pt gaps",fmtRec(o3)+" · "+pctRec(o3)],["Break-even at standard odds","52.4%"],["Avg miss, model / market",f1(tMod)+" / "+f1(tMkt)+" pts"]]);
+  card("Straight up",m1,"model's projected winner",[["Market favorite",fmtRec(k1)+" · "+pctRec(k1)],["Games graded",String(m1.w+m1.l)]]);
+  var hr=el("tr"); ["Week","Games","Spread","Spread 3+","Totals","Totals 3+","Winner: model","Winner: market"].forEach(function(h){hr.appendChild(el("th",null,h))}); tb.appendChild(hr);
+  function row(label,list,cls){
+    var tr=el("tr",cls);
+    [label,String(list.length),fmtRec(tally(list,"sp")),fmtRec(tally(list,"sp",3)),fmtRec(tally(list,"tt")),fmtRec(tally(list,"tt",3)),fmtRec(tally(list,"su")),fmtRec(tally(list,"mk"))].forEach(function(v){tr.appendChild(el("td",null,v))});
+    tb.appendChild(tr);
+  }
+  row("Season",d,"sum");
+  MODEL.weeks.forEach(function(w){ var l=d.filter(function(p){return p.g.week===w}); if(l.length) row(String(w),l) });
+}
+
+// ---- Schedule & results
+function renderSchedule(){
+  var tb=$("schedule-table"); tb.textContent="";
+  var hr=el("tr"); ["Wk","Date","Matchup","Final","Spread line","Spread pick (gap)","Result","Total line","Total pick (gap)","Result"].forEach(function(h,i){hr.appendChild(el("th",i===2?"l":null,h))}); tb.appendChild(hr);
+  var rows=MODEL.preds.slice().sort(function(a,b){
+    if(a.g.week!==b.g.week) return b.g.week-a.g.week;
+    return (a.g.day+(a.g.time||"")).localeCompare(b.g.day+(b.g.time||""));
+  });
+  rows.forEach(function(p){
+    var x=p.g, c=calls(p), tr=el("tr");
+    function td(v,cls){ tr.appendChild(el("td",cls||null,v)) }
+    td(String(x.week)); td(mdate(x)); td(x.away+" @ "+x.home,"l");
+    td(p.done?x.as+"–"+x.hs:"–");
+    td(x.sl!=null?favText(x.sl,x.home,x.away):"–");
+    td(c.sp?c.sp.pick+" ("+f1(c.sp.gap)+")":"–");
+    var r1=el("td"); r1.appendChild(resPill(c.sp)); tr.appendChild(r1);
+    td(x.tl!=null?f1(x.tl):"–");
+    td(c.tt?c.tt.pick+" ("+f1(c.tt.gap)+")":"–");
+    var r2=el("td"); r2.appendChild(resPill(c.tt)); tr.appendChild(r2);
+    tb.appendChild(tr);
+  });
+}
+
+// ---- shell
+function show(view){
+  VIEWS.forEach(function(v){ $("view-"+v).hidden=v!==view; $("tab-"+v).setAttribute("aria-selected",String(v===view)) });
+  $("crumb-title").textContent=TITLES[view];
+  try{localStorage.setItem("nflm-view",view)}catch(e){}
+}
+Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"),function(b){b.addEventListener("click",function(){show(b.dataset.view); window.scrollTo(0,0)})});
+Array.prototype.forEach.call(document.querySelectorAll("#pills button"),function(b){b.addEventListener("click",function(){
+  flt=b.dataset.f;
+  Array.prototype.forEach.call(document.querySelectorAll("#pills button"),function(x){x.setAttribute("aria-pressed",String(x===b))});
+  if(MODEL) renderWeek();
+})});
+$("search").addEventListener("input",function(e){ q=e.target.value.trim().toLowerCase(); if(MODEL) renderWeek() });
+$("week-select").addEventListener("change",function(e){selWeek=+e.target.value; renderWeek()});
+var h=(location.hash||"").replace("#",""), v0=null; try{v0=localStorage.getItem("nflm-view")}catch(e){}
+show(VIEWS.indexOf(h)>=0?h:(VIEWS.indexOf(v0)>=0?v0:"week"));
+
+// Standalone version: reads nflverse's games file directly each time the page opens
+function parseCSV(t){
+  var rows=[],row=[],f="",q=false;
+  for(var i=0;i<t.length;i++){var c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){f+='"';i++} else q=false } else f+=c }
+    else if(c==='"') q=true;
+    else if(c===","){row.push(f);f=""}
+    else if(c==="\n"){row.push(f);rows.push(row);row=[];f=""}
+    else if(c!=="\r") f+=c;
+  }
+  if(f!==""||row.length){row.push(f);rows.push(row)}
+  return rows;
+}
+function toData(text){
+  var rows=parseCSV(text), h=rows[0], ix={}; h.forEach(function(k,i){ix[k]=i});
+  var num=function(v){return v===""||v==null?null:parseFloat(v)};
+  var recs=rows.slice(1).filter(function(r){return r.length>=h.length-1&&r[ix.season]});
+  var season=Math.max.apply(null,recs.filter(function(r){return r[ix.home_score]!==""}).map(function(r){return +r[ix.season]}));
+  var today=new Date().toISOString().slice(0,10);
+  if(recs.some(function(r){return +r[ix.season]===season+1&&r[ix.gameday]<=today})) season++;
+  var games=recs.filter(function(r){var s=+r[ix.season];return s===season||s===season-1}).map(function(r){
+    return {season:+r[ix.season],week:+r[ix.week],type:r[ix.game_type],day:r[ix.gameday],time:r[ix.gametime],
+      away:r[ix.away_team],home:r[ix.home_team],as:num(r[ix.away_score]),hs:num(r[ix.home_score]),loc:r[ix.location],
+      sl:num(r[ix.spread_line]),tl:num(r[ix.total_line]),aml:num(r[ix.away_moneyline]),hml:num(r[ix.home_moneyline])};
+  });
+  return {updated:new Date().toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}),season:season,games:games};
+}
+
+fetch("https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",{cache:"no-store"}).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text() }).then(toData).then(function(j){
+  DATA=j; build(); selWeek=MODEL.next;
+  var sel=$("week-select"); MODEL.weeks.forEach(function(w){var o=el("option",null,"Week "+w); o.value=w; if(w===selWeek) o.selected=true; sel.appendChild(o)});
+  var doneN=j.games.filter(function(x){return x.season===j.season&&x.hs!=null}).length;
+  $("stamp").textContent=j.season+" · "+doneN+" games played · "+j.updated;
+  $("season-label").textContent=j.season+" season";
+  $("season-sub").textContent=MODEL.next>18?"Postseason":"Regular";
+  Array.prototype.forEach.call(document.querySelectorAll(".yr"),function(s){s.textContent=j.season});
+  renderWeek(); renderRatings(); renderResults(); renderSchedule();
+}).catch(function(e){ var b=$("err"); b.hidden=false; b.textContent="The game data could not be loaded ("+e.message+"). Reload the page to try again."; $("stamp").textContent="No data" });
+})();
+
+</script>
+</body>
+</html>
