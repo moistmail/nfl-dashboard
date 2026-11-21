@@ -244,6 +244,8 @@ dl.gloss dd{margin:0;color:var(--muted);font-size:13px}
     </dl>
     <h3 class="gl-h">Model inputs</h3>
     <dl class="gloss">
+      <div><dt>QB adjustment</dt><dd>Points added or removed when a team starts a quarterback better or worse than the ones its rating was built on. Each QB is rated on his career expected points added per play, and the ratings update twice a week.</dd></div>
+      <div><dt>Market preseason ratings</dt><dd>Each season's starting ratings are pulled most of the way toward what the Week 1 betting lines imply, so offseason changes count from the first game.</dd></div>
       <div><dt>Home field advantage</dt><dd>Points added for playing at home. Not applied at neutral sites.</dd></div>
       <div><dt>Last-season carryover</dt><dd>How much of each team’s final rating from last season it starts this season with. 70% means it keeps most of it.</dd></div>
       <div><dt>Shrink toward prior</dt><dd>How many games of this season it takes for current results to count as much as the starting rating. A higher number means ratings move more slowly.</dd></div>
@@ -270,7 +272,8 @@ dl.gloss dd{margin:0;color:var(--muted);font-size:13px}
 (function(){
 "use strict";
 var NICK={ARI:"Cardinals",ATL:"Falcons",BAL:"Ravens",BUF:"Bills",CAR:"Panthers",CHI:"Bears",CIN:"Bengals",CLE:"Browns",DAL:"Cowboys",DEN:"Broncos",DET:"Lions",GB:"Packers",HOU:"Texans",IND:"Colts",JAX:"Jaguars",KC:"Chiefs",LA:"Rams",LAC:"Chargers",LV:"Raiders",MIA:"Dolphins",MIN:"Vikings",NE:"Patriots",NO:"Saints",NYG:"Giants",NYJ:"Jets",PHI:"Eagles",PIT:"Steelers",SEA:"Seahawks",SF:"49ers",TB:"Buccaneers",TEN:"Titans",WAS:"Commanders"};
-var DEF={hfa:1.5,k:12,carry:60,sos:1,wsp:0,wtot:0,wwin:0,sd:10};
+var DEF={hfa:1.5,k:12,carry:60,sos:1,wsp:0,wtot:0,wwin:0,sd:10,pa:0.75,pb:0.75};
+var QB={}, QBURL="https://raw.githubusercontent.com/moistmail/nfl-dashboard/main/qb_adjust.csv";
 var S=Object.assign({},DEF), DATA=null, MODEL=null, selWeek=null;
 
 function $(id){return document.getElementById(id)}
@@ -321,6 +324,12 @@ function build(){
   var z=teams.map(function(){return 0});
   var pr=rate(prev,teams,z,z,z,22), c=S.carry/100;
   var mP=pr.R.map(function(v){return c*v}),mO=pr.O.map(function(v){return c*v}),mD=pr.D.map(function(v){return c*v});
+  // Market preseason ratings: pull starting ratings toward what the Week 1 closing lines imply
+  if(S.pa||S.pb){ var ix0={}; teams.forEach(function(t,i){ix0[t]=i});
+    var w1=Math.min.apply(null,cur.map(function(x){return x.week}));
+    cur.filter(function(x){return x.week===w1&&x.sl!=null}).forEach(function(x){var h=ix0[x.home],a=ix0[x.away],hf=x.loc==="Home"?1:0;
+      var e=(x.sl-S.hfa*hf)-(mP[h]-mP[a]); mP[h]+=S.pa*e/2; mP[a]-=S.pa*e/2;
+      if(x.tl!=null){var f=x.tl-(2*pr.lg+mO[h]+mO[a]+mD[h]+mD[a]); mO[h]+=S.pb*f/4; mO[a]+=S.pb*f/4; mD[h]+=S.pb*f/4; mD[a]+=S.pb*f/4;}});}
   var weeks=Array.from(new Set(cur.map(function(x){return x.week}))).sort(function(a,b){return a-b});
   var byWeek={};
   weeks.forEach(function(w){ byWeek[w]=rate(cur.filter(function(x){return x.week<w}),teams,mP,mO,mD,pr.lg) });
@@ -330,13 +339,14 @@ function build(){
   var preds=cur.map(function(x){
     var r=byWeek[x.week],h=r.idx[x.home],a=r.idx[x.away],hf=x.loc==="Home"?1:0;
     var mm=r.R[h]-r.R[a]+S.hfa*hf, mt=2*r.lg+r.O[h]+r.O[a]+r.D[h]+r.D[a];
+    var qa=QB[x.id]||null; if(qa){mm+=qa.s; mt+=qa.t;} // starting-QB adjustment
     var hasS=x.sl!=null, hasT=x.tl!=null;
     var ws=S.wsp/100, wt=S.wtot/100, ww=S.wwin/100;
     var bm=hasS? ws*mm+(1-ws)*x.sl : mm, bt=hasT? wt*mt+(1-wt)*x.tl : mt;
     var pm=cdf(mm/S.sd), pk=null;
     if(x.hml!=null&&x.aml!=null){var ph=implied(x.hml),pa=implied(x.aml); pk=ph/(ph+pa)} else if(hasS) pk=cdf(x.sl/S.sd);
     var bp=pk!=null? ww*pm+(1-ww)*pk : pm;
-    return {g:x,mm:mm,mt:mt,bm:bm,bt:bt,bp:bp,pm:pm,pk:pk,side:hasS?mm-x.sl:null,tot:hasT?mt-x.tl:null,
+    return {g:x,qa:qa,mm:mm,mt:mt,bm:bm,bt:bt,bp:bp,pm:pm,pk:pk,side:hasS?mm-x.sl:null,tot:hasT?mt-x.tl:null,
             ph:(bt+bm)/2,pa:(bt-bm)/2,done:x.hs!=null};
   });
   MODEL={teams:teams,weeks:weeks,byWeek:byWeek,next:next,latest:latest,preds:preds,season:season};
@@ -435,6 +445,7 @@ function renderWeek(){
     }
     var chips=el("div","chips");
     if(!hasM) chips.appendChild(el("span","chip","No market line yet"));
+    if(p.qa&&Math.abs(p.qa.s)>=1){ var hc=Math.abs(p.qa.hd)>=Math.abs(p.qa.ad); chips.appendChild(el("span","chip","QB adjustment: "+(p.qa.s>0?x.home:x.away)+" +"+f1(Math.abs(p.qa.s))+" ("+(hc?p.qa.hq+" for "+x.home:p.qa.aq+" for "+x.away)+")")) }
     if(p.side!=null){ var a=Math.abs(p.side); chips.appendChild(el("span","chip"+(a>=3?" flag":""), a<1?"Spread: model agrees":"Spread gap: model likes "+(p.side>0?x.home:x.away)+" by "+f1(a))) }
     if(p.tot!=null){ var b=Math.abs(p.tot); chips.appendChild(el("span","chip"+(b>=3?" flag":""), b<1?"Total: model agrees":"Total gap: model "+(p.tot>0?"over":"under")+" by "+f1(b))) }
     if(p.done){
@@ -557,14 +568,20 @@ function toData(text){
   var today=new Date().toISOString().slice(0,10);
   if(recs.some(function(r){return +r[ix.season]===season+1&&r[ix.gameday]<=today})) season++;
   var games=recs.filter(function(r){var s=+r[ix.season];return s===season||s===season-1}).map(function(r){
-    return {season:+r[ix.season],week:+r[ix.week],type:r[ix.game_type],day:r[ix.gameday],time:r[ix.gametime],
+    return {id:r[ix.game_id],season:+r[ix.season],week:+r[ix.week],type:r[ix.game_type],day:r[ix.gameday],time:r[ix.gametime],
       away:r[ix.away_team],home:r[ix.home_team],as:num(r[ix.away_score]),hs:num(r[ix.home_score]),loc:r[ix.location],
       sl:num(r[ix.spread_line]),tl:num(r[ix.total_line]),aml:num(r[ix.away_moneyline]),hml:num(r[ix.home_moneyline])};
   });
   return {updated:new Date().toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}),season:season,games:games};
 }
 
-fetch("https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",{cache:"no-store"}).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text() }).then(toData).then(function(j){
+function loadQB(t){ QB={}; if(!t) return; var rows=parseCSV(t), h=rows[0], ix={}; h.forEach(function(k,i){ix[k]=i});
+  rows.slice(1).forEach(function(r){ if(r.length<h.length) return; QB[r[ix.game_id]]={s:parseFloat(r[ix.adj_spread])||0,t:parseFloat(r[ix.adj_total])||0,
+    hq:r[ix.home_qb],aq:r[ix.away_qb],hd:parseFloat(r[ix.home_delta])||0,ad:parseFloat(r[ix.away_delta])||0} }) }
+Promise.all([
+  fetch("https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",{cache:"no-store"}).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.text() }),
+  fetch(QBURL,{cache:"no-store"}).then(function(r){ return r.ok? r.text() : "" }).catch(function(){ return "" })
+]).then(function(t){ loadQB(t[1]); return toData(t[0]) }).then(function(j){
   DATA=j; build(); selWeek=MODEL.next;
   var sel=$("week-select"); MODEL.weeks.forEach(function(w){var o=el("option",null,"Week "+w); o.value=w; if(w===selWeek) o.selected=true; sel.appendChild(o)});
   var doneN=j.games.filter(function(x){return x.season===j.season&&x.hs!=null}).length;
